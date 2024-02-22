@@ -3,6 +3,8 @@
 const notesContainer = document.querySelector("#notes-container");
 const noteInput = document.querySelector("#note-content");
 const addNoteBtn = document.querySelector(".add-note");
+const searchInput = document.querySelector("#search-input");
+const exportBtn = document.querySelector("#export-notes");
 
 // Funções(
 function showNotes() {
@@ -85,7 +87,13 @@ function createNote(id, content, fixed) {
         element.classList.add("fixed");
     }
 
-    // Eventos do Elemento
+    // Eventos do Elemento -----------------------------------------------------------------------
+
+    element.querySelector("textarea").addEventListener("keyup", (e) => {
+        const noteContent = e.target.value;
+        updateNote(id, noteContent);
+    })
+
     element.querySelector(".bi-pin").addEventListener("click", () => {
         toggleFixNote(id);
     });
@@ -140,7 +148,17 @@ function copyNote(id) {
     notes.push(noteObject);
 
     saveNotes(notes);
-}
+};
+
+function updateNote (id, newContent) {
+    const notes = getNotes();
+
+    const targetNote = notes.filter((note) => note.id === id)[0]
+
+    targetNote.content = newContent;
+
+    saveNotes(notes);
+};
 
 // Local Storege
 function getNotes() {
@@ -149,15 +167,71 @@ function getNotes() {
     const orderedNotes = notes.sort((a,b) => (a.fixed > b.fixed ? -1 : 1));
 
     return orderedNotes;
-}
+};
 
 function saveNotes(notes) {
     localStorage.setItem("notes", JSON.stringify(notes));
-}
+};
 
+function searchNotes(search) {
+    const searchResults = getNotes().filter((note) => {
+        return note.content.includes(search);
+    })
+
+    if(search !== "") {
+        cleanNotes();
+
+        searchResults.forEach((note) => {
+            const noteElement = createNote(note.id, note.content);
+            notesContainer.appendChild(noteElement);
+        });
+
+        return;
+    };
+
+    cleanNotes();
+
+    showNotes();
+};
+
+function exportdata () {
+    const notes = getNotes();
+
+    const csvString = [
+        ["ID", "Conteúdo", "Fixado?"],
+        ...notes.map((note) => [note.id, note.content, note.fixed]),
+    ]
+    .map((e) => e.join(","))
+    .join("\n");
+
+    const element = document.createElement("a");
+
+    element.href = "data:text/csv:charset=utf8," + encodeURI(csvString);
+
+    element.target = "_blank";
+
+    element.download = "notes.csv";
+
+    element.click();
+};
 
 // Eventos
 addNoteBtn.addEventListener("click", () => addNote());
+
+searchInput.addEventListener("keyup", (e) => {
+    const search = e.target.value;
+    searchNotes(search);
+});
+
+noteInput.addEventListener("keydown", (e) => {
+    if(e.key === "Enter") {
+        addNote();
+    };
+});
+
+exportBtn.addEventListener("click", () => {
+    exportdata();
+})
 
 // Inicialização
 
